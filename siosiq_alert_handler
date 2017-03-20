@@ -1,0 +1,105 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2017 SIOS Technology, Corp.
+#
+"""
+This script can be configured as an alert trigger action script in Splunk.
+The alert query must produce the following fields:
+    uuid = the VMware UUID of the VM that the event occurred on
+    _time = time the event occurred (in epoch time, i.e. seconds since 1/1/1970)
+    sios_environment_id = the SIOS iQ ID of the environment that the VM is in
+    sios_layer (optional, default 'Compute') = 'Compute' or 'Storage'
+                                               depending on the type of event
+    sios_description (optional) = any additional information that you want
+                                  (will appear in the SIOS iQ UI with the event)
+"""
+import os
+
+# remove splunk-specific environment variables
+for envvar in ('PYTHONPATH', 'LD_LIBRARY_PATH', 'OPENSSL_CONF',
+               'NODE_PATH', 'LDAP_CONF'):
+    if envvar in os.environ:
+        del os.environ[envvar]
+
+import sys
+import io
+import gzip
+import csv
+from time import gmtime, strftime
+import logging
+from logging import Logger
+from logging.handlers import SysLogHandler
+
+log = Logger('siosiq_alert_handler')
+log.setLevel(logging.DEBUG)
+handler = SysLogHandler(address = '/dev/log')
+log.addHandler(handler)
+
+log.info("python version: %s.%s.%s (%s)",
+         sys.version_info[0], sys.version_info[1], sys.version_info[2],
+         sys.executable)
+
+if (len(sys.argv) < 9):
+    print >>sys.stderr, 'this script should be used as a Splunk alert trigger action script only'
+    sys.exit(1)
+
+splunkhome = os.environ['SPLUNK_HOME']
+
+for p in sys.path:
+    if splunkhome in p:
+        sys.path.remove(p)
+        log.debug("remove %s from path (%s)", p, splunkhome)
+
+# re-exec ourselves in order for empty LD_LIBRARY_PATH to take effect
+if (len(sys.argv) < 10):
+    python = sys.executable
+    sys.argv.append('do-not-re-exec')
+    os.execl(python, python, *sys.argv)
+
+sys.path.insert(0, '/root/sdk')
+
+for p in sys.path:
+    log.info("path: %s", p)
+
+for v in os.environ:
+    log.info("env: %s=%s", v, os.environ[v])
+
+from SignaliQ.client import Client
+from SignaliQ.model.CloudProviderEvent import CloudProviderEvent
+from SignaliQ.model.ProviderEventsUpdateMessage import ProviderEventsUpdateMessage
+
+log.debug("got an alert: %s", sys.argv[4])
+log.debug("result file: %s", sys.argv[8])
+for a in sys.argv:
+    log.debug("all args: %s", a)
+
+with gzip.open(sys.argv[8], 'r') as file:
+    reader = csv.DictReader(file)
+    for row in reader: # should be a header row and one row of data
+        values = row
+
+for v in values:
+    log.debug("key: %s val: %s", v, values[v])
+
+isotime = strftime('%Y-%m-%dT%H:%M:%S%z', gmtime(float(values['_time'])))
+log.info("time: %s layer: %s uuid: %s", isotime, values.get('layer', 'Compute'), values['uuid'])
+
+events = [
+    CloudProviderEvent(
+        environment_id = values['sios_environment_id'],
+        event_type = sys.argv[4],
+        description = values.get('sios_description', sys.argv[4]),
+        layer = values.get('sios_layer', 'Compute'),
+        time = isotime,
+        vm_uuids = [values['uuid']],
+    )
+]
+
+message = ProviderEventsUpdateMessage(
+            environment_id = values['sios_environment_id'],
+            events = events)
+
+client = Client()
+client.connect()
+client.send(message)
+client.disconnect()
