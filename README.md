@@ -22,15 +22,15 @@ To integrate the siosiq_alert_handler script with Splunk, follow these steps:
 6. create or modify a Splunk alert that retrieves VM related events so that
    the alert query generates events with the following fields:
 ```
-     uuid = the VMware UUID of the VM that the event occurred on
-     _time = time the event occurred (in epoch time, i.e. seconds
-             since 1/1/1970)
-     sios_environment_id = the SIOS iQ ID of the environment that the VM is in
-     sios_layer (optional, default 'Compute') = 'Compute' or 'Storage'
-                                                depending on the type of event
-     sios_description (optional) = any additional information that you want
-                                   (will appear in the SIOS iQ UI with the
-                                   event)
+   uuid = the VMware UUID of the VM that the event occurred on
+   _time = time the event occurred (in epoch time, i.e. seconds
+           since 1/1/1970)
+   sios_environment_id = the SIOS iQ ID of the environment that the VM is in
+   sios_layer (optional, default 'Compute') = 'Compute' or 'Storage'
+                                              depending on the type of event
+   sios_description (optional) = any additional information that you want
+                                 (will appear in the SIOS iQ UI with the
+                                 event)
 ```
    Listed below is a sample Splunk query, which might be used to produce this
    type of result (in particular, note the treatment of the uuid property, which
@@ -57,11 +57,11 @@ To integrate the siosiq_alert_handler script with Splunk, follow these steps:
 
 8. wait for the alert query to run and check the results in the splunk logs:
 ```
-     /opt/splunk/var/log/splunk/python.log | contains an INFO message for
-                                             each script execution
-     /opt/splunk/var/log/splunk/splunkd.log | may contain an ERROR message if
-                                              the script fails for some reason
-     /var/log/syslog | siosiq_alert_handler logs to /var/log/syslog
-                       (set log level to logging.DEBUG in siosiq_alert_handler
-                       to see more logging information)
+   /opt/splunk/var/log/splunk/python.log = contains an INFO message for
+                                           each script execution
+   /opt/splunk/var/log/splunk/splunkd.log = may contain an ERROR message if
+                                            the script fails for some reason
+   /var/log/syslog = siosiq_alert_handler logs to /var/log/syslog
+                     (set log level to logging.DEBUG in siosiq_alert_handler
+                     to see more logging information)
 ```
