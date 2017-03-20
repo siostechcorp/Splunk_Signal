@@ -15,6 +15,7 @@ The alert query must produce the following fields:
 """
 import os
 
+# remove splunk-specific environment variables
 for envvar in ('PYTHONPATH', 'LD_LIBRARY_PATH', 'OPENSSL_CONF',
                'NODE_PATH', 'LDAP_CONF'):
     if envvar in os.environ:
