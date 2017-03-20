@@ -56,8 +56,7 @@ To integrate the siosiq_alert_handler script with Splunk, follow these steps:
 7. add a script action (trigger) to the alert and specify siosiq_alert_handler
 
 8. wait for the alert query to run and check the results in the splunk logs:
-     log file | purpose
-          --- | ---
+```
      /opt/splunk/var/log/splunk/python.log | contains an INFO message for
                                              each script execution
      /opt/splunk/var/log/splunk/splunkd.log | may contain an ERROR message if
@@ -65,3 +64,4 @@ To integrate the siosiq_alert_handler script with Splunk, follow these steps:
      /var/log/syslog | siosiq_alert_handler logs to /var/log/syslog
                        (set log level to logging.DEBUG in siosiq_alert_handler
                        to see more logging information)
+```
